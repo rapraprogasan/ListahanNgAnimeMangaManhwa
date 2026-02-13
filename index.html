@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - ListahanNgAniméMangaManhwa</title>
+    <link rel="stylesheet" href="styles/style.css">
+</head>
+<body class="dark-mode">
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-content">
+            <a href="index.html" class="logo">🎬 ListahanNgAniméMangaManhwa</a>
+            <nav class="main-nav">
+                <!-- HOME BUTTON (ACTIVE) -->
+                <a href="index.html" class="nav-item active">🏠 Home <span class="count-badge" data-count="total">0</span></a>
+                
+                <a href="anime.html" class="nav-item">Anime <span class="count-badge" data-count="anime-all">0</span></a>
+                <a href="manga.html" class="nav-item">Manga <span class="count-badge" data-count="manga-all">0</span></a>
+                <a href="manhwa.html" class="nav-item">Manhwa <span class="count-badge" data-count="manhwa-all">0</span></a>
+                
+                <span id="dbStatus" class="db-indicator offline">● OFFLINE</span>
+                
+                <!-- USER DROPDOWN -->
+                <div class="user-dropdown">
+                    <button class="user-btn" onclick="toggleUserMenu()">
+                        <span class="user-icon">👤</span>
+                        <span id="currentUsername" class="username">Loading...</span>
+                        <span class="dropdown-arrow">▼</span>
+                    </button>
+                    <div id="userMenu" class="dropdown-content">
+                        <div class="user-info">
+                            <span class="user-icon-large">👤</span>
+                            <span id="dropdownUsername">Loading...</span>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" onclick="openChangePasswordModal(); return false;" class="dropdown-item">
+                            <span>🔒</span> Change Password
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" onclick="logout()" class="dropdown-item logout-item">
+                            <span>🚪</span> Logout
+                        </a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- Search Bar -->
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search anime, manga, or manhwa..." onkeyup="handleSearch()">
+        </div>
+
+        <!-- ✅ FILTER TABS - GAYA NG SA ANIME/MANGA/MANHWA -->
+        <div style="max-width: 1400px; margin: 0 auto; padding: 0 20px;">
+            <div class="filter-tabs">
+                <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All <span data-count="total">0</span></button>
+                <button class="filter-btn" data-filter="watching" onclick="setFilter('watching')">Watching <span data-count="watching">0</span></button>
+                <button class="filter-btn" data-filter="dropped" onclick="setFilter('dropped')">Dropped <span data-count="dropped">0</span></button>
+                <button class="filter-btn" data-filter="plan" onclick="setFilter('plan')">Plan <span data-count="plan">0</span></button>
+                <button class="filter-btn" data-filter="complete" onclick="setFilter('complete')">Complete <span data-count="complete">0</span></button>
+            </div>
+        </div>
+
+        <!-- ✅ TYPE FILTER TABS -->
+        <div style="max-width: 1400px; margin: 10px auto 0; padding: 0 20px;">
+            <div class="type-filter-tabs">
+                <button class="type-filter-btn active" data-type="all" onclick="setTypeFilter('all')">All Types</button>
+                <button class="type-filter-btn" data-type="anime" onclick="setTypeFilter('anime')">🎬 Anime</button>
+                <button class="type-filter-btn" data-type="manga" onclick="setTypeFilter('manga')">📚 Manga</button>
+                <button class="type-filter-btn" data-type="manhwa" onclick="setTypeFilter('manhwa')">📖 Manhwa</button>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+<div id="loadingIndicator" style="display: none; text-align: center; padding: 40px;">
+    <div class="loading-spinner" style="width: 120px; height: 120px; margin: 0 auto;"></div>
+    <p style="color: var(--text-muted); margin-top: 35px; font-size: 22px; font-weight: 500;">⌛ Loading entries...</p>
+</div>
+        <!-- Entries Grid -->
+        <div id="recentGrid" class="grid-container"></div>
+        
+        <!-- No Results Message -->
+        <div id="noResults" style="display: none; text-align: center; padding: 50px;">
+            <p style="color: var(--text-muted); font-size: 18px;">No entries found</p>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer id="mainFooter"></footer>
+
+    <!-- Dark/Light Mode Toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">
+        🌙
+    </button>
+
+    <script src="js/config.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/database.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <script>
+        let allEntries = [];
+        let currentFilter = 'all';
+        let currentTypeFilter = 'all';
+
+        // Initialize page
+        async function initPage() {
+            showLoading();
+            initDbChecker();
+            
+            // Show loading indicator
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('recentGrid').style.display = 'none';
+            
+            // Load all entries
+            allEntries = await Database.getAllEntries();
+            
+            // Hide loading indicator
+            document.getElementById('loadingIndicator').style.display = 'none';
+            document.getElementById('recentGrid').style.display = 'grid';
+            
+            // Update all counts
+            updateAllCounts();
+            
+            // Display entries
+            displayEntries();
+            
+            hideLoading();
+        }
+
+        // Update all counts
+        function updateAllCounts() {
+            // Total counts by status
+            const watching = allEntries.filter(e => e.status === 'watching').length;
+            const dropped = allEntries.filter(e => e.status === 'dropped').length;
+            const plan = allEntries.filter(e => e.status === 'plan').length;
+            const complete = allEntries.filter(e => e.status === 'complete').length;
+            
+            document.querySelectorAll('[data-count="total"]').forEach(el => {
+                el.textContent = allEntries.length;
+            });
+            document.querySelectorAll('[data-count="watching"]').forEach(el => {
+                el.textContent = watching;
+            });
+            document.querySelectorAll('[data-count="dropped"]').forEach(el => {
+                el.textContent = dropped;
+            });
+            document.querySelectorAll('[data-count="plan"]').forEach(el => {
+                el.textContent = plan;
+            });
+            document.querySelectorAll('[data-count="complete"]').forEach(el => {
+                el.textContent = complete;
+            });
+            
+            // Update also the anime/manga/manhwa counts sa navigation
+            updateCounts(allEntries);
+        }
+
+        // Display entries based on filters
+        function displayEntries() {
+            const grid = document.getElementById('recentGrid');
+            const noResults = document.getElementById('noResults');
+            
+            // Apply filters
+            let filtered = allEntries;
+            
+            // Filter by status
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(entry => entry.status === currentFilter);
+            }
+            
+            // Filter by type
+            if (currentTypeFilter !== 'all') {
+                filtered = filtered.filter(entry => entry.type === currentTypeFilter);
+            }
+            
+            // Sort by date (newest first)
+            filtered = filtered.sort((a, b) => {
+                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+            });
+            
+            // Display or show no results
+            if (filtered.length === 0) {
+                grid.style.display = 'none';
+                noResults.style.display = 'block';
+            } else {
+                grid.style.display = 'grid';
+                noResults.style.display = 'none';
+                
+                grid.innerHTML = '';
+                filtered.forEach(entry => {
+                    const card = createCard(entry);
+                    grid.appendChild(card);
+                });
+            }
+        }
+
+        // Set status filter
+        function setFilter(filter) {
+            currentFilter = filter;
+            
+            // Update active button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.filter-btn[data-filter="${filter}"]`).classList.add('active');
+            
+            // Display entries
+            displayEntries();
+        }
+
+        // Set type filter
+        function setTypeFilter(type) {
+            currentTypeFilter = type;
+            
+            // Update active button
+            document.querySelectorAll('.type-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.type-filter-btn[data-type="${type}"]`).classList.add('active');
+            
+            // Display entries
+            displayEntries();
+        }
+
+        // Handle search
+        async function handleSearch() {
+            const query = document.getElementById('searchInput').value;
+            
+            if (query.length > 2) {
+                const results = searchEntries(allEntries, query);
+                displaySearchResults(results);
+            } else if (query.length === 0) {
+                displayEntries();
+            }
+        }
+
+        // Display search results
+        function displaySearchResults(results) {
+            const grid = document.getElementById('recentGrid');
+            const noResults = document.getElementById('noResults');
+            
+            if (results.length === 0) {
+                grid.style.display = 'none';
+                noResults.style.display = 'block';
+            } else {
+                grid.style.display = 'grid';
+                noResults.style.display = 'none';
+                
+                grid.innerHTML = '';
+                results.forEach(entry => {
+                    const card = createCard(entry);
+                    grid.appendChild(card);
+                });
+            }
+        }
+
+        // CREATE CARD - WITH NOTES SCROLL AND YOUTUBE BUTTON
+        function createCard(entry) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            const imageUrl = entry.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image';
+            const typeIcon = entry.type === 'anime' ? '🎬' : entry.type === 'manga' ? '📚' : '📖';
+            const typeText = entry.type === 'anime' ? 'eps' : 'ch';
+            
+            card.innerHTML = `
+                <div class="card-image" onclick="window.open('${entry.streamingUrl || '#'}', '_blank')">
+                    <img src="${imageUrl}" alt="${entry.title}" onerror="this.src='https://via.placeholder.com/300x200?text=No+Image'">
+                </div>
+                <div class="card-content">
+                    <h3 class="card-title">${entry.title || 'Untitled'}</h3>
+                    <div class="card-info">
+                        <span>${typeIcon} ${entry.episodes || 0} ${typeText}</span>
+                        <span class="rating">⭐ ${formatRating(entry.rating || 0)}/10</span>
+                    </div>
+                    <span class="status-badge status-${entry.status || 'plan'}">${entry.status || 'plan'}</span>
+                    
+                    <!-- NOTES SECTION -->
+                    <div class="notes-container">
+                        <div class="notes-label">
+                            <span>📝</span> Notes
+                        </div>
+                        <div class="notes-content" id="notes-${entry.id}" style="
+                            color: #ffffff !important;
+                            font-size: 13px !important;
+                            line-height: 1.7 !important;
+                            max-height: 100px !important;
+                            overflow-y: auto !important;
+                            padding: 15px 18px !important;
+                            background: #2a2a2a !important;
+                            border-radius: 10px !important;
+                            border-left: 5px solid #ff6b6b !important;
+                            text-align: justify !important;
+                            text-justify: inter-word !important;
+                            word-wrap: break-word !important;
+                            white-space: pre-wrap !important;
+                        ">
+                            ${entry.notes || 'No notes added'}
+                        </div>
+                        ${entry.notes && entry.notes.length > 100 ? `
+                        <button class="see-more-btn" onclick="event.stopPropagation(); showFullNotes('${entry.id}', '${entry.notes.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n')}')">
+                            See more <span>→</span>
+                        </button>
+                        ` : ''}
+                    </div>
+                    
+                    <!-- EDIT/DELETE BUTTONS -->
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button class="btn btn-edit" onclick="event.stopPropagation(); editEntry('${entry.id}')">Edit</button>
+                        <button class="btn btn-delete" onclick="event.stopPropagation(); deleteEntry('${entry.id}')">Delete</button>
+                    </div>
+                    
+                    <!-- YOUTUBE BUTTON -->
+                    ${entry.youtubeUrl ? `
+                    <button 
+                        onclick="event.stopPropagation(); openYouTube('${entry.youtubeUrl}')"
+                        style="
+                            width: 100%;
+                            margin-top: 15px;
+                            background: #ff0000;
+                            color: white;
+                            border: none;
+                            padding: 12px;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-size: 15px;
+                            font-weight: bold;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
+                            transition: all 0.3s;
+                        "
+                        onmouseover="this.style.background='#cc0000'; this.style.transform='scale(1.02)'"
+                        onmouseout="this.style.background='#ff0000'; this.style.transform='scale(1)'"
+                    >
+                        <span style="font-size: 20px;">▶</span>
+                        WATCH TRAILER ON YOUTUBE
+                    </button>
+                    ` : ''}
+                    
+                    <!-- TYPE BADGE -->
+                    <div style="margin-top: 10px; text-align: right;">
+                        <span style="
+                            display: inline-block;
+                            padding: 4px 12px;
+                            background: var(--bg-hover);
+                            color: var(--text-secondary);
+                            border-radius: 20px;
+                            font-size: 11px;
+                            text-transform: uppercase;
+                            border: 1px solid var(--border-color);
+                        ">
+                            ${entry.type || 'anime'}
+                        </span>
+                    </div>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Edit entry
+        async function editEntry(id) {
+            const entry = allEntries.find(e => e.id === id);
+            if (entry) {
+                window.location.href = `${entry.type}.html?edit=${id}`;
+            }
+        }
+
+        // Delete entry
+        async function deleteEntry(id) {
+            if (confirm('Are you sure you want to delete this entry?')) {
+                const result = await Database.deleteEntry(id);
+                if (result.success) {
+                    allEntries = await Database.getAllEntries();
+                    updateAllCounts();
+                    displayEntries();
+                }
+            }
+        }
+
+        // Theme toggle
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const toggle = document.getElementById('themeToggle');
+            if (document.body.classList.contains('light-mode')) {
+                toggle.innerHTML = '☀️';
+                localStorage.setItem('theme', 'light');
+            } else {
+                toggle.innerHTML = '🌙';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Load saved theme
+        function loadSavedTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-mode');
+                document.getElementById('themeToggle').innerHTML = '☀️';
+            }
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            initPage();
+            loadFooter();
+            loadSavedTheme();
+        });
+    </script>
+</body>
+</html>

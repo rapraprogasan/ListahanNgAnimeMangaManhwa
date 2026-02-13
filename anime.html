@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime List - ListahanNgAniméMangaManhwa</title>
+    <link rel="stylesheet" href="styles/style.css">
+    <style>
+        /* Additional styles for YouTube preview */
+        .youtube-preview {
+            margin-top: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #1a1a1a;
+            border: 1px solid #444;
+        }
+        
+        .preview-thumbnail {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            background: #000;
+            cursor: pointer;
+        }
+        
+        .preview-thumbnail img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 0, 0, 0.9);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .play-button:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            background: #ff0000;
+        }
+        
+        .play-button span {
+            color: white;
+            font-size: 30px;
+            margin-left: 5px;
+        }
+        
+        .youtube-direct-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 15px;
+            background: #ff0000;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .youtube-direct-btn:hover {
+            background: #cc0000;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-content">
+            <a href="index.html" class="logo">🎬 ListahanNgAniméMangaManhwa</a>
+            <nav class="main-nav">
+                  <!-- DASHBOARD/HOME BUTTON -->
+            <a href="index.html" class="nav-item">🏠 Dashboard</a>
+                <a href="anime.html" class="nav-item active">Anime <span class="count-badge" data-count="anime-all">0</span></a>
+                <a href="manga.html" class="nav-item">Manga <span class="count-badge" data-count="manga-all">0</span></a>
+                <a href="manhwa.html" class="nav-item">Manhwa <span class="count-badge" data-count="manhwa-all">0</span></a>
+                <span id="dbStatus" class="db-indicator offline">● OFFLINE</span>
+                     <!-- USER DROPDOWN - PALITAN ITO -->
+<div class="user-dropdown">
+    <button class="user-btn" onclick="toggleUserMenu()">
+        <span class="user-icon">👤</span>
+        <span id="currentUsername" class="username">Loading...</span>
+        <span class="dropdown-arrow">▼</span>
+    </button>
+    <div id="userMenu" class="dropdown-content">
+        <div class="user-info">
+            <span class="user-icon-large">👤</span>
+            <span id="dropdownUsername">Loading...</span>
+        </div>
+        <div class="dropdown-divider"></div>
+        
+        <!-- ✅ CHANGE PASSWORD LINK -->
+        <a href="#" onclick="openChangePasswordModal(); return false;" class="dropdown-item">
+            <span>🔒</span> Change Password
+        </a>
+        
+        <div class="dropdown-divider"></div>
+        <a href="#" onclick="logout()" class="dropdown-item logout-item">
+            <span>🚪</span> Logout
+        </a>
+    </div>
+            </nav>
+        </div>
+        
+    </header>
+
+    <main>
+        <!-- Search Bar -->
+        <div class="search-container">
+            <input type="text" id="searchAnime" class="search-input" placeholder="Search anime..." onkeyup="searchAnime()">
+        </div>
+
+        <!-- Filter Tabs -->
+        <div style="max-width: 1400px; margin: 0 auto; padding: 0 20px;">
+            <div class="filter-tabs">
+                <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All <span data-count="anime-all">0</span></button>
+                <button class="filter-btn" data-filter="watching" onclick="setFilter('watching')">Watching <span data-count="anime-watching">0</span></button>
+                <button class="filter-btn" data-filter="dropped" onclick="setFilter('dropped')">Dropped <span data-count="anime-dropped">0</span></button>
+                <button class="filter-btn" data-filter="plan" onclick="setFilter('plan')">Plan <span data-count="anime-plan">0</span></button>
+                <button class="filter-btn" data-filter="complete" onclick="setFilter('complete')">Complete <span data-count="anime-complete">0</span></button>
+            </div>
+        </div>
+
+        <!-- Anime Grid -->
+        <div id="animeGrid" class="grid-container"></div>
+    </main>
+
+    <!-- Add Button -->
+    <button class="add-btn" onclick="openAddModal()">+</button>
+
+    <!-- Add/Edit Modal with YouTube Preview -->
+    <div id="animeModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h2 id="modalTitle" style="color: white; margin-bottom: 20px;">Add New Anime</h2>
+            <form id="animeForm" onsubmit="event.preventDefault(); saveAnimeEntry();">
+                <input type="hidden" id="entryId">
+                
+                <!-- Title -->
+                <div style="margin-bottom: 15px;">
+                    <label style="color: white; display: block; margin-bottom: 5px; font-weight: bold;">📝 Title</label>
+                    <input type="text" id="title" required style="width: 100%; padding: 12px; background: #222; border: 2px solid #444; color: white; border-radius: 8px; font-size: 14px;">
+                </div>
+                
+                <!-- Status and Episodes Row -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="color: white; display: block; margin-bottom: 5px; font-weight: bold;">📌 Status</label>
+                        <select id="status" style="width: 100%; padding: 12px; background: #222; border: 2px solid #444; color: white; border-radius: 8px;">
+                            <option value="watching">Watching</option>
+                            <option value="dropped">Dropped</option>
+                            <option value="plan">Plan</option>
+                            <option value="complete">Complete</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="color: white; display: block; margin-bottom: 5px; font-weight: bold;">🔢 Episodes</label>
+                        <input type="number" id="episodes" min="0" style="width: 100%; padding: 12px; background: #222; border: 2px solid #444; color: white; border-radius: 8px;">
+                    </div>
+                </div>
+                
+                <!-- Rating and Image URL Row -->
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="color: white; display: block; margin-bottom: 5px; font-weight: bold;">⭐ Rating</label>
+                        <input type="number" id="rating" min="0" max="10" step="0.1" style="width: 100%; padding: 12px; background: #222; border: 2px solid #444; color: white; border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="color: white; display: block; margin-bottom: 5px; font-weight: bold;">🖼️ Image URL</label>
+                        <input type="url" id="imageUrl" placeholder="https://example.com/image.jpg" style="width: 100%; padding: 12px; background: #222; border: 2px solid #444; color: white; border-radius: 8px;">
+                    </div>
+                </div>
+                
+                <!-- YOUTUBE URL WITH LIVE PREVIEW -->
+                <div style="margin-bottom: 20px;">
+                    <label style="color: white; display: block; margin-bottom: 8px; font-weight: bold;">
+                        🎬 YouTube Trailer URL
+                    </label>
+                    <input type="url" 
+                           id="youtubeUrl" 
+                           placeholder="https://www.youtube.com/watch?v=..." 
+                           style="
+                                width: 100%;
+                                padding: 12px 15px;
+                                background: #222;
+                                border: 2px solid #444;
+                                color: white;
+                                border-radius: 8px;
+                                font-size: 14px;
+                                transition: all 0.3s;
+                           "
+                           onfocus="this.style.borderColor='#ff6b6b'"
+                           onblur="this.style.borderColor='#444'"
+                           onchange="updateVideoPreview(this.value, 'youtube-preview-container')"
+                           onkeyup="updateVideoPreview(this.value, 'youtube-preview-container')">
+                    <small style="color: #aaa; display: block; margin-top: 5px;">
+                        ⚡ Paste YouTube link - preview will appear below
+                    </small>
+                    
+                    <!-- YOUTUBE LIVE PREVIEW CONTAINER -->
+                    <div id="youtube-preview-container" style="display: none; margin-top: 20px;">
+                        <div style="
+                            background: #1a1a1a;
+                            border-radius: 12px;
+                            padding: 15px;
+                            border: 1px solid #444;
+                        ">
+                            <p style="color: #ff6b6b; margin-bottom: 12px; font-size: 13px; font-weight: bold;">
+                                📺 PREVIEW:
+                            </p>
+                            <div id="youtube-preview-player" style="
+                                position: relative;
+                                width: 100%;
+                                padding-bottom: 56.25%;
+                                background: #000;
+                                border-radius: 8px;
+                                overflow: hidden;
+                                cursor: pointer;
+                            "></div>
+                            <p style="color: #888; margin-top: 12px; font-size: 12px; text-align: center;">
+                                ⚠️ Click the play button to open on YouTube.com
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Streaming URL -->
+                <div style="margin-bottom: 15px;">
+                    <label style="color: white; display: block; margin-bottom: 5px; font-weight: bold;">🌐 Streaming URL</label>
+                    <input type="url" id="streamingUrl" placeholder="https://crunchyroll.com/..." style="width: 100%; padding: 12px; background: #222; border: 2px solid #444; color: white; border-radius: 8px;">
+                </div>
+                
+                <!-- Notes -->
+                <div style="margin-bottom: 20px;">
+                    <label style="color: white; display: block; margin-bottom: 5px; font-weight: bold;">📝 Notes</label>
+                    <textarea id="notes" placeholder="Your notes here..." style="width: 100%; padding: 12px; background: #222; border: 2px solid #444; color: white; border-radius: 8px; min-height: 100px; resize: vertical;"></textarea>
+                </div>
+                
+                <!-- Buttons -->
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1; padding: 14px; font-size: 16px; font-weight: bold;">💾 Save</button>
+                    <button type="button" class="btn" style="flex: 1; padding: 14px; background: #444; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold;" onclick="closeModal()">✕ Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer id="mainFooter"></footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/database.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/anime.js"></script>
+    
+    <script>
+        // Additional function for YouTube preview
+        function updateVideoPreview(url, containerId) {
+            const container = document.getElementById(containerId);
+            const playerDiv = document.getElementById('youtube-preview-player');
+            
+            if (!container || !playerDiv) return;
+            
+            // Clear previous preview
+            playerDiv.innerHTML = '';
+            
+            if (!url) {
+                container.style.display = 'none';
+                return;
+            }
+            
+            const videoId = getYoutubeId(url);
+            
+            if (videoId) {
+                container.style.display = 'block';
+                
+                playerDiv.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%;">
+                        <img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg" 
+                             style="width: 100%; height: 100%; object-fit: cover;"
+                             onerror="this.src='https://img.youtube.com/vi/${videoId}/hqdefault.jpg'">
+                        <div style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            width: 50px;
+                            height: 50px;
+                            background: rgba(255,0,0,0.9);
+                            border-radius: 50%;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            cursor: pointer;
+                            transition: all 0.3s;
+                        "
+                        onmouseover="this.style.background='#ff0000'; this.style.transform='translate(-50%, -50%) scale(1.1)'"
+                        onmouseout="this.style.background='rgba(255,0,0,0.9)'; this.style.transform='translate(-50%, -50%) scale(1)'"
+                        onclick="window.open('https://www.youtube.com/watch?v=${videoId}', '_blank')">
+                            <span style="color: white; font-size: 24px; margin-left: 3px;">▶</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        // Override the openEditModal to trigger preview
+        const originalOpenEditModal = window.openEditModal;
+        window.openEditModal = function(entry) {
+            if (originalOpenEditModal) {
+                originalOpenEditModal(entry);
+            }
+            
+            // Trigger YouTube preview after modal opens
+            setTimeout(() => {
+                if (entry && entry.youtubeUrl) {
+                    updateVideoPreview(entry.youtubeUrl, 'youtube-preview-container');
+                }
+            }, 200);
+        };
+
+        // Override the openAddModal to clear preview
+        const originalOpenAddModal = window.openAddModal;
+        window.openAddModal = function() {
+            if (originalOpenAddModal) {
+                originalOpenAddModal();
+            }
+            
+            // Clear YouTube preview
+            const container = document.getElementById('youtube-preview-container');
+            if (container) {
+                container.style.display = 'none';
+            }
+            const youtubeInput = document.getElementById('youtubeUrl');
+            if (youtubeInput) {
+                youtubeInput.value = '';
+            }
+        };
+    </script>
+    <!-- Dark/Light Mode Toggle -->
+<button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">
+    🌙
+</button>
+
+<script>
+// Theme toggle function
+function toggleTheme() {
+    document.body.classList.toggle('light-mode');
+    const toggle = document.getElementById('themeToggle');
+    if (document.body.classList.contains('light-mode')) {
+        toggle.innerHTML = '☀️';
+        localStorage.setItem('theme', 'light');
+    } else {
+        toggle.innerHTML = '🌙';
+        localStorage.setItem('theme', 'dark');
+    }
+}
+
+// Load saved theme
+document.addEventListener('DOMContentLoaded', function() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+        document.getElementById('themeToggle').innerHTML = '☀️';
+    }
+});
+</script>
+</body>
+</html>

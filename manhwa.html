@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manhwa List - ListahanNgAniméMangaManhwa</title>
+    <link rel="stylesheet" href="styles/style.css">
+</head>
+<body class="dark-mode">
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-content">
+            <a href="index.html" class="logo">🎬 ListahanNgAniméMangaManhwa</a>
+            <nav class="main-nav">
+                 <a href="index.html" class="nav-item">🏠 Dashboard</a>
+                <a href="anime.html" class="nav-item">Anime <span class="count-badge" data-count="anime-all">0</span></a>
+                <a href="manga.html" class="nav-item">Manga <span class="count-badge" data-count="manga-all">0</span></a>
+                <a href="manhwa.html" class="nav-item active">Manhwa <span class="count-badge" data-count="manhwa-all">0</span></a>
+                <span id="dbStatus" class="db-indicator offline">● OFFLINE</span>
+                     <!-- USER DROPDOWN - PALITAN ITO -->
+<div class="user-dropdown">
+    <button class="user-btn" onclick="toggleUserMenu()">
+        <span class="user-icon">👤</span>
+        <span id="currentUsername" class="username">Loading...</span>
+        <span class="dropdown-arrow">▼</span>
+    </button>
+    <div id="userMenu" class="dropdown-content">
+        <div class="user-info">
+            <span class="user-icon-large">👤</span>
+            <span id="dropdownUsername">Loading...</span>
+        </div>
+        <div class="dropdown-divider"></div>
+        
+        <!-- ✅ CHANGE PASSWORD LINK -->
+        <a href="#" onclick="openChangePasswordModal(); return false;" class="dropdown-item">
+            <span>🔒</span> Change Password
+        </a>
+        
+        <div class="dropdown-divider"></div>
+        <a href="#" onclick="logout()" class="dropdown-item logout-item">
+            <span>🚪</span> Logout
+        </a>
+    </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- Search Bar -->
+        <div class="search-container">
+            <input type="text" id="searchManhwa" class="search-input" placeholder="Search manhwa..." onkeyup="searchManhwa()">
+        </div>
+
+        <!-- Filter Tabs -->
+        <div style="max-width: 1400px; margin: 0 auto; padding: 0 20px;">
+            <div class="filter-tabs">
+                <button class="filter-btn active" data-filter="all" onclick="setManhwaFilter('all')">All <span data-count="manhwa-all">0</span></button>
+                <button class="filter-btn" data-filter="watching" onclick="setManhwaFilter('watching')">Reading <span data-count="manhwa-watching">0</span></button>
+                <button class="filter-btn" data-filter="dropped" onclick="setManhwaFilter('dropped')">Dropped <span data-count="manhwa-dropped">0</span></button>
+                <button class="filter-btn" data-filter="plan" onclick="setManhwaFilter('plan')">Plan <span data-count="manhwa-plan">0</span></button>
+                <button class="filter-btn" data-filter="complete" onclick="setManhwaFilter('complete')">Complete <span data-count="manhwa-complete">0</span></button>
+            </div>
+        </div>
+
+        <!-- Manhwa Grid -->
+        <div id="manhwaGrid" class="grid-container"></div>
+    </main>
+
+    <!-- Add Button -->
+    <button class="add-btn" onclick="openManhwaAddModal()">+</button>
+
+    <!-- Add/Edit Modal -->
+    <div id="manhwaModal" class="modal">
+        <div class="modal-content">
+            <h2 id="manhwaModalTitle" style="color: white; margin-bottom: 20px;">Add New Manhwa</h2>
+            <form id="manhwaForm" onsubmit="event.preventDefault(); saveManhwaEntry();">
+                <input type="hidden" id="manhwaEntryId">
+                
+                <label style="color: white;">Title</label>
+                <input type="text" id="manhwaTitle" required>
+                
+                <label style="color: white;">Status</label>
+                <select id="manhwaStatus">
+                    <option value="watching">Reading</option>
+                    <option value="dropped">Dropped</option>
+                    <option value="plan">Plan</option>
+                    <option value="complete">Complete</option>
+                </select>
+                
+                <label style="color: white;">Chapters</label>
+                <input type="number" id="manhwaChapters" min="0">
+                
+                <label style="color: white;">Rating (0-10)</label>
+                <input type="number" id="manhwaRating" min="0" max="10" step="0.1">
+                
+                <label style="color: white;">Image URL</label>
+                <input type="url" id="manhwaImageUrl" placeholder="https://example.com/image.jpg">
+                
+                <label style="color: white;">YouTube URL</label>
+                <input type="url" id="manhwaYoutubeUrl" placeholder="https://youtube.com/watch?v=...">
+                
+                <label style="color: white;">Reading URL</label>
+                <input type="url" id="manhwaStreamingUrl" placeholder="https://webtoons.com/...">
+                
+                <label style="color: white;">Notes</label>
+                <textarea id="manhwaNotes" placeholder="Your notes here..."></textarea>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Save</button>
+                    <button type="button" class="btn" style="flex: 1; background: #444;" onclick="closeManhwaModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer id="mainFooter"></footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/database.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/manhwa.js"></script>
+    <!-- Dark/Light Mode Toggle -->
+<button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">
+    🌙
+</button>
+
+<script>
+// Theme toggle function
+function toggleTheme() {
+    document.body.classList.toggle('light-mode');
+    const toggle = document.getElementById('themeToggle');
+    if (document.body.classList.contains('light-mode')) {
+        toggle.innerHTML = '☀️';
+        localStorage.setItem('theme', 'light');
+    } else {
+        toggle.innerHTML = '🌙';
+        localStorage.setItem('theme', 'dark');
+    }
+}
+
+// Load saved theme
+document.addEventListener('DOMContentLoaded', function() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+        document.getElementById('themeToggle').innerHTML = '☀️';
+    }
+});
+</script>
+</body>
+</html>

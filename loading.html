@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading - ListahanNgAniméMangaManhwa</title>
+    <link rel="stylesheet" href="styles/loading.css">
+    <style>
+        /* Para hindi na ma-trigger ulit ang loading */
+        body.loaded {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <h1 class="loading-title">ListahanNgAniméMangaManhwa</h1>
+        <p class="loading-text" id="loadingText">Loading your memories...</p>
+        <div class="loading-progress">
+            <div class="loading-bar" id="loadingBar"></div>
+        </div>
+    </div>
+
+    <script>
+        // Check kung galing na sa loading
+        if (sessionStorage.getItem('loading_completed')) {
+            // Diretso na sa index, wag na mag-loading ulit
+            window.location.replace('index.html');
+        } else {
+            // Simulate loading - isang beses lang
+            let progress = 0;
+            const loadingBar = document.getElementById('loadingBar');
+            const loadingText = document.getElementById('loadingText');
+            
+            // Clear any existing intervals
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                
+                if (progress >= 100) {
+                    progress = 100;
+                    loadingBar.style.width = '100%';
+                    loadingText.textContent = 'Complete! Redirecting...';
+                    
+                    clearInterval(interval);
+                    
+                    // Mark na nakapag-load na
+                    sessionStorage.setItem('loading_completed', 'true');
+                    
+                    // Redirect after short delay
+                    setTimeout(() => {
+                        window.location.replace('index.html');
+                    }, 800);
+                } else {
+                    loadingBar.style.width = progress + '%';
+                    
+                    // Update text based on progress
+                    if (progress > 80) {
+                        loadingText.textContent = 'Almost there...';
+                    } else if (progress > 50) {
+                        loadingText.textContent = 'Loading your memories...';
+                    } else if (progress > 20) {
+                        loadingText.textContent = 'Fetching data...';
+                    }
+                }
+            }, 150);
+        }
+    </script>
+</body>
+</html>
