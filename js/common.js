@@ -380,11 +380,20 @@ document.addEventListener('click', function(event) {
 });
 
 // Modified logout function
+// Update logout function to clear user-specific data
 function logout() {
+    const userId = getCurrentUser();
+    if (userId) {
+        // Clear user-specific cache
+        localStorage.removeItem(STORAGE_KEYS.ENTRIES + '_' + userId);
+        localStorage.removeItem(STORAGE_KEYS.LAST_SYNC + '_' + userId);
+    }
+    
     localStorage.removeItem(STORAGE_KEYS.USER);
     sessionStorage.removeItem('loading_completed');
     window.location.href = 'login.html';
 }
+
 
 // Initialize user display on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -673,4 +682,5 @@ async function changePassword() {
             saveBtn.disabled = false;
         }
     }
+
 }
