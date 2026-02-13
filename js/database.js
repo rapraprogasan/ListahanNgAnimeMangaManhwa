@@ -2,46 +2,52 @@
 // database.js - Google Sheets Database with ONLINE Status
 // ============================================
 
+// database.js - UPDATED WITH USER ID
+
 const Database = {
-    // Fetch all entries
+    // Fetch all entries for current user
     async getAllEntries() {
+        const userId = getCurrentUser();
+        if (!userId) {
+            console.error('No user logged in');
+            return [];
+        }
+        
         try {
-            const response = await fetch(`${CONFIG.API_URL}?action=getAll&_=${Date.now()}`);
+            const response = await fetch(`${CONFIG.API_URL}?action=getAll&userId=${userId}&_=${Date.now()}`);
             const data = await response.json();
             
             if (data.success) {
-                localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(data.data));
-                localStorage.setItem(STORAGE_KEYS.LAST_SYNC, Date.now().toString());
-                
-                // 🟢 SET STATUS TO ONLINE
-                this.updateOnlineStatus(true);
-                
+                localStorage.setItem(STORAGE_KEYS.ENTRIES + '_' + userId, JSON.stringify(data.data));
+                localStorage.setItem(STORAGE_KEYS.LAST_SYNC + '_' + userId, Date.now().toString());
                 return data.data;
             }
-            
-            // 🔴 SET STATUS TO OFFLINE
-            this.updateOnlineStatus(false);
             return this.getLocalEntries();
-            
         } catch (error) {
             console.error('Error fetching entries:', error);
-            
-            // 🔴 SET STATUS TO OFFLINE
-            this.updateOnlineStatus(false);
             return this.getLocalEntries();
         }
     },
     
-    // Get local entries (offline fallback)
+    // Get local entries for current user
     getLocalEntries() {
-        const entries = localStorage.getItem(STORAGE_KEYS.ENTRIES);
+        const userId = getCurrentUser();
+        if (!userId) return [];
+        
+        const entries = localStorage.getItem(STORAGE_KEYS.ENTRIES + '_' + userId);
         return entries ? JSON.parse(entries) : [];
     },
     
-    // Add new entry
+    // Add new entry for current user
     async addEntry(entry) {
+        const userId = getCurrentUser();
+        if (!userId) {
+            return { success: false, error: 'No user logged in' };
+        }
+        
         const formData = new FormData();
         formData.append('action', 'add');
+        formData.append('userId', userId);  // ✅ Send userId
         Object.keys(entry).forEach(key => {
             formData.append(key, entry[key]);
         });
@@ -55,31 +61,26 @@ const Database = {
             
             if (data.success) {
                 await this.getAllEntries(); // Refresh cache
-                
-                // 🟢 SET STATUS TO ONLINE
-                this.updateOnlineStatus(true);
-                
                 return { success: true, id: data.id };
             }
-            
-            // 🔴 SET STATUS TO OFFLINE
-            this.updateOnlineStatus(false);
             return { success: false, error: data.error };
-            
         } catch (error) {
             console.error('Error adding entry:', error);
-            
-            // 🔴 SET STATUS TO OFFLINE
-            this.updateOnlineStatus(false);
             return { success: false, error: error.message };
         }
     },
     
-    // Update entry
+    // Update entry for current user
     async updateEntry(id, updates) {
+        const userId = getCurrentUser();
+        if (!userId) {
+            return { success: false, error: 'No user logged in' };
+        }
+        
         const formData = new FormData();
         formData.append('action', 'update');
         formData.append('id', id);
+        formData.append('userId', userId);  // ✅ Send userId
         Object.keys(updates).forEach(key => {
             formData.append(key, updates[key]);
         });
@@ -93,31 +94,26 @@ const Database = {
             
             if (data.success) {
                 await this.getAllEntries(); // Refresh cache
-                
-                // 🟢 SET STATUS TO ONLINE
-                this.updateOnlineStatus(true);
-                
                 return { success: true };
             }
-            
-            // 🔴 SET STATUS TO OFFLINE
-            this.updateOnlineStatus(false);
             return { success: false, error: data.error };
-            
         } catch (error) {
             console.error('Error updating entry:', error);
-            
-            // 🔴 SET STATUS TO OFFLINE
-            this.updateOnlineStatus(false);
             return { success: false, error: error.message };
         }
     },
     
-    // Delete entry
+    // Delete entry for current user
     async deleteEntry(id) {
+        const userId = getCurrentUser();
+        if (!userId) {
+            return { success: false, error: 'No user logged in' };
+        }
+        
         const formData = new FormData();
         formData.append('action', 'delete');
         formData.append('id', id);
+        formData.append('userId', userId);  // ✅ Send userId
         
         try {
             const response = await fetch(CONFIG.API_URL, {
@@ -128,25 +124,15 @@ const Database = {
             
             if (data.success) {
                 await this.getAllEntries(); // Refresh cache
-                
-                // 🟢 SET STATUS TO ONLINE
-                this.updateOnlineStatus(true);
-                
                 return { success: true };
             }
-            
-            // 🔴 SET STATUS TO OFFLINE
-            this.updateOnlineStatus(false);
             return { success: false, error: data.error };
-            
         } catch (error) {
             console.error('Error deleting entry:', error);
-            
-            // 🔴 SET STATUS TO OFFLINE
-            this.updateOnlineStatus(false);
             return { success: false, error: error.message };
         }
-    },
+    }
+};
 
     // ============================================
     // 🟢 UPDATE ONLINE STATUS IN UI
@@ -254,5 +240,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Make Database global
 window.Database = Database;
+
 
 console.log('✅ database.js loaded with ONLINE status fix');
